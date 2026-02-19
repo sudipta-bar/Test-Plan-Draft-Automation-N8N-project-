@@ -1,0 +1,37 @@
+Act as a QA Lead.
+
+Generate a structured test plan in STRICT JSON format.
+
+CRITICAL RULE:
+Requirement ID must be copied EXACTLY from input.
+Do NOT modify it.
+Do NOT generate a new ID.
+
+Requirement ID: {{$json.requirement_id}}
+Module: {{$json.module}}
+Complexity: {{$json.complexity}}
+Features: {{$json.features.join(', ')}}
+
+Return ONLY valid JSON.
+Use EXACT structure and field types:
+{
+  "requirement_id": "string (exactly same as input)",
+  "scope": {
+    "features_under_test": ["array of strings"],
+    "out_of_scope": ["array of strings"]
+  },
+  "test_types": ["array of strings"],
+  "entry_criteria": ["array of strings"],
+  "exit_criteria": ["array of strings"],
+  "risk_assessment": ["array of strings"],
+  "effort_estimation": {
+    "estimated_test_cases": "number",
+    "estimated_effort_days": "number"
+  }
+}
+
+Do NOT return markdown.
+Do NOT include explanations.
+Do NOT include placeholders.
+Do NOT include {{$json}} syntax in output.
+Ensure output is valid JSON only.

@@ -1,0 +1,236 @@
+{
+  "name": "My workflow 3",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-test-plan",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "8789d15e-93ec-44a5-8ab2-235af1096ffe",
+      "name": "Webhook",
+      "webhookId": "1bc94bac-8d2a-4f99-8a5d-04c298c14483",
+      "retryOnFail": false,
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "88edbb99-d173-435e-8a9b-661cc8985a5e",
+              "name": "requirement_id",
+              "value": "={{ $json.body.requirement_id }}",
+              "type": "string"
+            },
+            {
+              "id": "c383ae7c-4dc1-4031-a07f-1e69ce378404",
+              "name": "module",
+              "value": "={{ $json.body.module }}",
+              "type": "string"
+            },
+            {
+              "id": "3fb6dbb3-5098-418a-8986-d0d29bb78c75",
+              "name": "complexity",
+              "value": "={{ $json.body.complexity }}",
+              "type": "string"
+            },
+            {
+              "id": "7123879c-0721-4633-8b5e-c703fc5b5806",
+              "name": "features",
+              "value": "={{ $json.body.features }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "1dcb2bbc-7c2e-4ef2-9ea9-f86338013c7b",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=AIzaSyDHXbOMBG4n00KYb4Pk77GWMmeWwSY0des",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"Act as a QA Lead.\\n\\nGenerate a structured test plan in STRICT JSON format.\\n\\nCRITICAL RULE:\\nRequirement ID must be copied EXACTLY from input.\\nDo NOT modify it.\\nDo NOT generate a new ID.\\n\\nRequirement ID: {{$json.requirement_id}}\\nModule: {{$json.module}}\\nComplexity: {{$json.complexity}}\\nFeatures: {{$json.features.join(', ')}}\\n\\nReturn ONLY valid JSON.\\nUse EXACT structure and field types:\\n{\\n  \\\"requirement_id\\\": \\\"string (exactly same as input)\\\",\\n  \\\"scope\\\": {\\n    \\\"features_under_test\\\": [\\\"array of strings\\\"],\\n    \\\"out_of_scope\\\": [\\\"array of strings\\\"]\\n  },\\n  \\\"test_types\\\": [\\\"array of strings\\\"],\\n  \\\"entry_criteria\\\": [\\\"array of strings\\\"],\\n  \\\"exit_criteria\\\": [\\\"array of strings\\\"],\\n  \\\"risk_assessment\\\": [\\\"array of strings\\\"],\\n  \\\"effort_estimation\\\": {\\n    \\\"estimated_test_cases\\\": \\\"number\\\",\\n    \\\"estimated_effort_days\\\": \\\"number\\\"\\n  }\\n}\\n\\nDo NOT return markdown.\\nDo NOT include explanations.\\nDo NOT include placeholders.\\nDo NOT include {{$json}} syntax in output.\\nEnsure output is valid JSON only.\"\n        }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "994a4276-7ae4-40f6-97d8-d35ba6b0ffcf",
+      "name": "HTTP Request",
+      "retryOnFail": false,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "const model = $json;\nconst input = $node[\"Webhook\"].json;\n\nlet text = model.candidates?.[0]?.content?.parts?.[0]?.text || \"\";\n\nlet parsed = {};\n\ntry {\n  parsed = JSON.parse(text);\n} catch (e) {\n  parsed = {};\n}\n\nconst complexity = (input.body.complexity || \"Medium\").toLowerCase();\nlet testCases = 25;\nlet effortDays = 5;\n\nif (complexity === \"low\") {\n  testCases = 10;\n  effortDays = 2;\n} else if (complexity === \"high\") {\n  testCases = 50;\n  effortDays = 10;\n}\n\nreturn [\n  {\n    json: {\n      requirement_id: input.body.requirement_id,\n\n      scope:\n        typeof parsed.scope === \"object\" && parsed.scope !== null\n          ? parsed.scope\n          : {},\n\n      test_types: Array.isArray(parsed.test_types)\n        ? parsed.test_types\n        : [],\n\n      entry_criteria:\n        Array.isArray(parsed.entry_criteria)\n          ? parsed.entry_criteria\n          : parsed.entry_criteria\n          ? [parsed.entry_criteria]\n          : [],\n\n      exit_criteria:\n        Array.isArray(parsed.exit_criteria)\n          ? parsed.exit_criteria\n          : parsed.exit_criteria\n          ? [parsed.exit_criteria]\n          : [],\n\n      risk_assessment:\n        Array.isArray(parsed.risk_assessment)\n          ? parsed.risk_assessment\n          : parsed.risk_assessment\n          ? [parsed.risk_assessment]\n          : [],\n\n      effort_estimation: {\n        estimated_test_cases: testCases,\n        estimated_effort_days: effortDays\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "53b40b33-13b7-4f78-81f1-d26a24fbfbb3",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "toJson",
+        "options": {
+          "fileName": "trstplan_v1.json"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1056,
+        0
+      ],
+      "id": "65298f07-0fdb-4c50-b861-9cbc4c123b30",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "rstplan_v1.json",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        1264,
+        0
+      ],
+      "id": "b4a24df7-229b-477a-8275-14361bc762f2",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        832,
+        0
+      ],
+      "id": "4121b3eb-c6ab-4a95-aae3-b44b063813bb",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "05f0a821-70e4-45fc-b544-53f12adf305b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cdc1b57951e2723c152bf5c6e30cd15f37b921ee10c5456920adad083fc00148"
+  },
+  "id": "L9e7eaT8tEb9Oj21",
+  "tags": []
+}
